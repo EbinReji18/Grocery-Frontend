@@ -2,8 +2,21 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { dummyProducts } from "../assets/assets";
 import toast from "react-hot-toast";
+import axios from "axios";
+
+axios.defaults.withCredentials = true;
+axios.defaults.baseURL = import.meta.env.VITE_BACKEND_URL;
 
 export const AppContext = createContext();
+
+// Added useAppContext hook to fix the missing export error
+export function useAppContext() {
+  const context = useContext(AppContext);
+  if (!context) {
+    throw new Error("useAppContext must be used within an AppContextProvider");
+  }
+  return context;
+}
 
 export const AppContextProvider = ({ children }) => {
   const currency = import.meta.env.VITE_CURRENCY;
@@ -15,6 +28,20 @@ export const AppContextProvider = ({ children }) => {
   const [products, setProducts] = useState([]);
   const [cartItems, setCartItems] = useState({});
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Fetch Seller Status
+  const fetchseller = async () => {
+    try {
+      const { data } = await axios.get('/api/seller/is-auth');
+      if (data.success) {
+        setIsSeller(true);
+      } else {
+        setIsSeller(false);
+      }
+    } catch (error) {
+      setIsSeller(false);
+    }
+  };
 
   // Fetch All Products
   const fetchProducts = async () => {
@@ -77,6 +104,7 @@ export const AppContextProvider = ({ children }) => {
   };
 
   useEffect(() => {
+    fetchseller();
     fetchProducts();
   }, []);
 
@@ -98,11 +126,8 @@ export const AppContextProvider = ({ children }) => {
     setSearchQuery,
     getCartCount,
     getCartAmount,
+    axios,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
-};
-
-export const useAppContext = () => {
-  return useContext(AppContext);
 };
